@@ -1,7 +1,27 @@
 [project]
 name = "bitbucket-mcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python-based client to interact with the Bitbucket Cloud API, allowing you to manage pull requests programmatically."
 readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Pratheek Bhat", email = "pratheek.bht@gmail.com"}]
+maintainers = [{name = "Pratheek Bhat", email = "pratheek.bht@gmail.com"}]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "httpx>=0.28.1",
+]
+
+[tool.black]
+line-length = 120
+
+[tool.isort]
+profile = "black"
+
+[dependency-groups]
+dev = [
+    "black>=25.9.0",
+    "isort>=6.1.0",
+    "pytest>=8.4.2",
+    "pytest-mock>=3.15.1",
+    "ruff>=0.13.3",
+]
