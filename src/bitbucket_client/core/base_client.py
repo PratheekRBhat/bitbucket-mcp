@@ -1,5 +1,4 @@
-import json
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Mapping, Optional
 
 import httpx
 from config.logger import logger

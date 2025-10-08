@@ -1,5 +1,6 @@
 from .base_client import BaseClient
 
+
 class HttpClient(BaseClient):
     """
     The specific HTTP client for interacting with the Bitbucket Cloud API.
@@ -18,11 +19,11 @@ class HttpClient(BaseClient):
             auth_password: The App Password or Bearer Token for authentication.
         """
         base_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/"
-        
+
         # Here is where we build the Bitbucket-specific headers
         headers = {
             # Note: If you are using an OAuth token, 'Bearer' is correct.
-            # If you are using an App Password with your username, 
+            # If you are using an App Password with your username,
             # you should use Basic Auth instead.
             "Authorization": f"Bearer {auth_password}",
             "Content-Type": "application/json",
