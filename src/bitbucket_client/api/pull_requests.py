@@ -10,135 +10,137 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from bitbucket_client.core import HttpClient, BaseClientError
 from bitbucket_client.config import logger
+from bitbucket_client.core import BaseClientError, HttpClient
+
+# --- Pydantic Models ---
 
 
 class PullRequestAuthor(BaseModel):
-    """
-    Represents the author of a pull request.
+    """Represents the author information of a pull request.
 
-    Attributes:
-        type (str): The type of author (e.g., 'user').
-        display_name (str): The display name of the author.
+    Contains basic user information for the person who created the pull request.
     """
 
-    type: str
     display_name: str
 
 
+class BranchInfo(BaseModel):
+    """Represents branch information in a pull request context.
+
+    Contains the name of a Git branch involved in a pull request operation.
+    """
+
+    name: str
+
+
+class CommitInfo(BaseModel):
+    """Represents commit information in a pull request context.
+
+    Contains the hash identifier of a Git commit involved in a pull request.
+    """
+
+    hash: str
+
+
+class RepositoryInfo(BaseModel):
+    """Represents repository information in a pull request context.
+
+    Contains metadata about the repository involved in a pull request operation.
+    """
+
+    type: str
+
+
 class PullRequestEndpoint(BaseModel):
-    """
-    Represents a branch endpoint in a pull request.
+    """Represents an endpoint (source or destination) of a pull request.
 
-    Attributes:
-        repository (str): The repository type.
-        branch (str): The name of the branch.
-        commit_hash (str): The commit hash of the branch.
+    Contains information about the repository, branch, and commit that form
+    either the source or destination of a pull request operation.
     """
 
-    repository: str
-    branch: str
-    commit_hash: str
+    repository: RepositoryInfo
+    branch: BranchInfo
+    commit: CommitInfo
+
+
+class Summary(BaseModel):
+    """Represents the summary/description content of a pull request.
+
+    Contains the raw text content of the pull request description or summary.
+    """
+
+    raw: str
+
+
+class MergeCommit(BaseModel):
+    """Represents the merge commit information of a pull request.
+
+    Contains the hash of the commit that resulted from merging the pull request,
+    if the pull request has been merged.
+    """
+
+    hash: str
 
 
 class PullRequest(BaseModel):
-    """
-    Represents a Bitbucket pull request.
+    """Represents a complete Bitbucket pull request with all associated data.
 
-    Attributes:
-        id (int): The unique identifier of the pull request.
-        title (str): The title of the pull request.
-        summary (str): The summary/description of the pull request.
-        state (str): The current state of the pull request (e.g., 'OPEN', 'MERGED', 'DECLINED').
-        merge_commit_hash (str): The commit hash of the merge commit.
-        reason (Optional[str]): The reason for the current state (optional).
-        author (PullRequestAuthor): The author of the pull request.
-        source (PullRequestEndpoint): The source branch endpoint.
-        destination (PullRequestEndpoint): The destination branch endpoint.
+    This is the main model that contains all information about a pull request,
+    including its metadata, content, state, participants, and endpoints.
     """
 
     id: int
     title: str
-    summary: str
+    summary: Summary
     state: str
-    merge_commit_hash: str
+    merge_commit: Optional[MergeCommit] = None
     reason: Optional[str] = ""
     author: PullRequestAuthor
     source: PullRequestEndpoint
     destination: PullRequestEndpoint
 
 
-class PullRequestsAPI:
-    """
-    API client for interacting with Bitbucket pull requests.
+# --- API Class ---
 
-    Provides methods to retrieve and manipulate pull request data from the Bitbucket API.
+
+class PullRequestsAPI:
+    """API client for interacting with Bitbucket pull requests.
+
+    Provides methods to retrieve and manipulate pull request data from the Bitbucket Cloud API.
+    This client handles authentication, request formatting, and response parsing for pull request
+    operations.
+
+    Args:
+        http_client: An instance of HttpClient configured for Bitbucket API communication.
     """
 
     def __init__(self, http_client: HttpClient):
-        """
-        Initialize the PullRequestsAPI client.
-
-        Args:
-            http_client (HttpClient): The HTTP client instance for making API requests.
-        """
         self.http_client = http_client
 
-    def _build_response_object(self, response: dict) -> PullRequest:
-        """
-        Build a PullRequest object from API response data.
+    def get(self, pull_request_id: int) -> PullRequest:
+        """Retrieve a specific pull request by its ID.
+
+        Fetches detailed information about a single pull request from the Bitbucket API,
+        including all associated metadata, participants, and state information.
 
         Args:
-            response (dict): The raw response dictionary from the Bitbucket API.
+            pull_request_id: The unique numeric identifier of the pull request to retrieve.
 
         Returns:
-            PullRequest: A structured PullRequest object with parsed data.
-        """
-        author = PullRequestAuthor(
-            type=response.get("author").get("type"), display_name=response.get("author").get("display_name")
-        )
-        source = PullRequestEndpoint(
-            repository=response.get("source").get("repository").get("type"),
-            branch=response.get("source").get("branch", {}).get("name"),
-            commit_hash=response.get("source").get("commit", {}).get("hash"),
-        )
-        destination = PullRequestEndpoint(
-            repository=response.get("destination").get("repository").get("type"),
-            branch=response.get("destination").get("branch", {}).get("name"),
-            commit_hash=response.get("destination").get("commit", {}).get("hash"),
-        )
-
-        return PullRequest(
-            id=response.get("id"),
-            title=response.get("title"),
-            summary=response.get("summary").get("raw"),
-            state=response.get("state"),
-            merge_commit_hash=response.get("merge_commit").get("hash"),
-            reason=response.get("reason") or "",
-            author=author,
-            source=source,
-            destination=destination,
-        )
-
-    def get_pull_request(self, pull_request_id: int) -> PullRequest:
-        """
-        Retrieve a specific pull request by its ID.
-
-        Args:
-            pull_request_id (int): The unique identifier of the pull request to retrieve.
-
-        Returns:
-            PullRequest: The requested pull request object with full details.
+            A PullRequest object containing all pull request details including title,
+            description, state, author, source/destination branches, and merge information.
 
         Raises:
-            BaseClientError: If the API request fails or the pull request is not found.
+            BaseClientError: If the API request fails or the response cannot be parsed.
         """
-        try:
-            response = self.http_client.get(path=self.http_client.base_url, params={"pull_request_id": pull_request_id})
-            response = response.json()
+        path = f"pullrequests/{pull_request_id}"
 
-            return self._build_response_object(response)
+        try:
+            response = self.http_client.get(path=path)
+
+            return PullRequest.model_validate(response.json())
+
         except BaseClientError as e:
-            logger.error("Error getting pull request: %s", e)
-            raise e
+            logger.error("Error getting pull request %d: %s", pull_request_id, e)
+            raise
