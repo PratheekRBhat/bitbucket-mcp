@@ -6,7 +6,7 @@ It includes data models for pull request objects and an API client for retrievin
 pull request information from the Bitbucket Cloud API.
 """
 
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
 
@@ -143,4 +143,31 @@ class PullRequestsAPI:
 
         except BaseClientError as e:
             logger.error("Error getting pull request %d: %s", pull_request_id, e)
+            raise
+
+    def list(self, state: str = "open") -> List[PullRequest]:
+        """List pull requests for the configured repository.
+
+        Retrieves a list of pull requests filtered by state from the Bitbucket API.
+        Only returns pull requests for the repository configured in the HTTP client.
+
+        Args:
+            state: The state of pull requests to retrieve. Defaults to "open".
+                  Valid values are typically "open", "merged", "declined", or "all".
+
+        Returns:
+            A list of PullRequest objects matching the specified state filter.
+            Each object contains all pull request details including title, description,
+            state, author, source/destination branches, and merge information.
+
+        Raises:
+            BaseClientError: If the API request fails or the response cannot be parsed.
+        """
+        try:
+            response = self.http_client.get(path="pullrequests", params={"state": state.upper()})
+
+            return [PullRequest.model_validate(item) for item in response.json()["values"]]
+
+        except BaseClientError as e:
+            logger.error("Error listing pull requests: %s", e)
             raise
