@@ -5,3 +5,8 @@ A Python-based client to interact with the Bitbucket Cloud API for managing pull
 """
 
 __version__ = "0.1.0"
+
+from .client import BitbucketClient
+from .exceptions import BaseClientError
+
+__all__ = ["BitbucketClient", "BaseClientError"]

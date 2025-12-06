@@ -1,7 +1,7 @@
 from typing import Any, Dict, Mapping, Optional
 
 import httpx
-from config.logger import logger
+from bitbucket_client.config.logger import logger
 
 
 class BaseClientError(Exception):
