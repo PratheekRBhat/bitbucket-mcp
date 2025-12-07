@@ -6,11 +6,24 @@ It includes data models for pull request objects and an API client for retrievin
 pull request information from the Bitbucket Cloud API.
 """
 
-from typing import List, Optional
+from typing import List
 
 from bitbucket_client.config import logger
 from bitbucket_client.core import BaseClientError, HttpClient
-from bitbucket_client.models import PullRequest, CreatePullRequest, MergePullRequest
+from bitbucket_client.models import (
+    PullRequest,
+    CreatePullRequest,
+    MergePullRequest,
+    GetPullRequestParams,
+    GetPullRequestsParams,
+    CreatePullRequestParams,
+    PullRequestSource,
+    PullRequestDestination,
+    PullRequestBranch,
+    MergePullRequestSimpleParams,
+    MergePullRequestParams,
+    DeclinePullRequestParams,
+)
 
 
 class PullRequestsAPI:
@@ -27,14 +40,14 @@ class PullRequestsAPI:
     def __init__(self, http_client: HttpClient):
         self.http_client = http_client
 
-    def get(self, pull_request_id: int) -> PullRequest:
+    def get(self, params: GetPullRequestParams) -> PullRequest:
         """Retrieve a specific pull request by its ID.
 
         Fetches detailed information about a single pull request from the Bitbucket API,
         including all associated metadata, participants, and state information.
 
         Args:
-            pull_request_id: The unique numeric identifier of the pull request to retrieve.
+            params: A GetPullRequestParams object containing the pull request ID.
 
         Returns:
             A PullRequest object containing all pull request details including title,
@@ -43,7 +56,7 @@ class PullRequestsAPI:
         Raises:
             BaseClientError: If the API request fails or the response cannot be parsed.
         """
-        path = f"pullrequests/{pull_request_id}"
+        path = f"pullrequests/{params.pull_request_id}"
 
         try:
             response = self.http_client.get(path=path)
@@ -51,17 +64,17 @@ class PullRequestsAPI:
             return PullRequest.model_validate(response.json())
 
         except BaseClientError as e:
-            logger.error("Error getting pull request %d: %s", pull_request_id, e)
+            logger.error("Error getting pull request %d: %s", params.pull_request_id, e)
             raise
 
-    def list(self, state: str = "open") -> List[PullRequest]:
+    def list(self, params: GetPullRequestsParams) -> List[PullRequest]:
         """List pull requests for the configured repository.
 
         Retrieves a list of pull requests filtered by state from the Bitbucket API.
         Only returns pull requests for the repository configured in the HTTP client.
 
         Args:
-            state: The state of pull requests to retrieve. Defaults to "open".
+            params: A GetPullRequestsParams object containing the state of pull requests to retrieve.
                   Valid values are typically "open", "merged", "declined", or "all".
 
         Returns:
@@ -73,7 +86,7 @@ class PullRequestsAPI:
             BaseClientError: If the API request fails or the response cannot be parsed.
         """
         try:
-            response = self.http_client.get(path="pullrequests", params={"state": state.upper()})
+            response = self.http_client.get(path="pullrequests", params={"state": params.state.upper()})
 
             return [PullRequest.model_validate(item) for item in response.json()["values"]]
 
@@ -81,16 +94,16 @@ class PullRequestsAPI:
             logger.error("Error listing pull requests: %s", e)
             raise
 
-    def create(self, params: CreatePullRequest) -> PullRequest:
+    def create(self, params: CreatePullRequestParams) -> PullRequest:
         """Create a new pull request.
 
         Posts a new pull request to the Bitbucket repository based on the provided
         parameters.
 
         Args:
-            params: A CreatePullRequest object containing all the necessary data
+            params: A CreatePullRequestParams object containing all the necessary data
                     to create a new pull request, such as title, source, and
-                    destination branches.
+                    destination branches, and close source branch.
 
         Returns:
             A PullRequest object representing the newly created pull request.
@@ -99,21 +112,25 @@ class PullRequestsAPI:
             BaseClientError: If the API request fails.
         """
         try:
-            response = self.http_client.post("pullrequests", json=params.model_dump(exclude_none=True))
+            json_body = CreatePullRequest(
+                title=params.title,
+                source=PullRequestSource(branch=PullRequestBranch(name=params.source_branch)),
+                destination=PullRequestDestination(branch=PullRequestBranch(name=params.destination_branch)),
+                close_source_branch=params.close_source_branch,
+            ).model_dump(exclude_none=True)
+            response = self.http_client.post("pullrequests", json=json_body)
             return PullRequest.model_validate(response.json())
         except BaseClientError as e:
             logger.error("Error creating pull request: %s", e)
             raise
 
-    def merge(self, pull_request_id: int, params: Optional[MergePullRequest]) -> PullRequest:
+    def merge(self, params: MergePullRequestParams) -> PullRequest:
         """Merge a pull request.
 
         Merges a specified pull request using the provided parameters.
 
         Args:
-            pull_request_id: The ID of the pull request to merge.
-            params: An optional MergePullRequest object with merge options like
-                    commit message, branch closing, and merge strategy.
+            params: A MergePullRequestParams object containing the pull request ID and merge options.
 
         Returns:
             A PullRequest object representing the state of the pull request post-merge.
@@ -121,24 +138,26 @@ class PullRequestsAPI:
         Raises:
             BaseClientError: If the API request fails.
         """
-        path = f"pullrequests/{pull_request_id}/merge"
+        path = f"pullrequests/{params.pull_request_id}/merge"
         try:
-            json_body = params.model_dump(exclude_none=True) if params else {}
+            json_body = MergePullRequest(
+                message=params.message,
+                close_source_branch=params.close_source_branch,
+                merge_strategy=params.merge_strategy,
+            ).model_dump(exclude_none=True)
             response = self.http_client.post(path=path, json=json_body)
             return PullRequest.model_validate(response.json())
         except BaseClientError as e:
-            logger.error("Error merging pull request %d: %s", pull_request_id, e)
+            logger.error("Error merging pull request %d: %s", params.pull_request_id, e)
             raise
 
-    def merge_simple(self, pull_request_id: int, close_source_branch: bool = False) -> PullRequest:
+    def merge_simple(self, params: MergePullRequestSimpleParams) -> PullRequest:
         """Merge a pull request with default options.
 
         A simplified version of the merge method that uses default merge options.
 
         Args:
-            pull_request_id: The ID of the pull request to merge.
-            close_source_branch: If True, the source branch will be deleted after merging.
-                                 Defaults to False.
+            params: A MergePullRequestSimpleParams object containing the pull request ID and close source branch.
 
         Returns:
             A PullRequest object representing the state of the pull request post-merge.
@@ -146,16 +165,21 @@ class PullRequestsAPI:
         Raises:
             BaseClientError: If the API request fails.
         """
-        params = MergePullRequest(close_source_branch=close_source_branch)
-        return self.merge(pull_request_id, params)
+        return self.merge(
+            MergePullRequestParams(
+                pull_request_id=params.pull_request_id,
+                close_source_branch=params.close_source_branch,
+                merge_strategy="merge_commit",
+            )
+        )
 
-    def decline(self, pull_request_id: int) -> PullRequest:
+    def decline(self, params: DeclinePullRequestParams) -> PullRequest:
         """Decline a pull request.
 
         Declines a specified pull request.
 
         Args:
-            pull_request_id: The ID of the pull request to decline.
+            params: A DeclinePullRequestParams object containing the pull request ID.
 
         Returns:
             A PullRequest object representing the state of the pull request post-decline.
@@ -164,10 +188,10 @@ class PullRequestsAPI:
             BaseClientError: If the API request fails.
         """
         try:
-            response = self.http_client.post(f"pullrequests/{pull_request_id}/decline")
+            response = self.http_client.post(f"pullrequests/{params.pull_request_id}/decline")
             return PullRequest.model_validate(response.json())
         except BaseClientError as e:
-            logger.error("Error declining pull request %d: %s", pull_request_id, e)
+            logger.error("Error declining pull request %d: %s", params.pull_request_id, e)
             raise
 
 #TODO: diff of PR, approve, comment crud, update, unapprove, request changes

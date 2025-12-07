@@ -6,7 +6,7 @@ data as returned by the Bitbucket API. These models are used for type hinting
 and data validation throughout the client.
 """
 
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 from pydantic import BaseModel, Field
 
@@ -216,3 +216,47 @@ class MergePullRequest(BaseModel):
     merge_strategy: Optional[str] = Field(
         "merge_commit", description="Merge strategy: 'merge_commit', 'squash', or 'fast_forward'."
     )
+
+
+class GetPullRequestsParams(BaseModel):
+    """Parameters for listing pull requests."""
+
+    state: Literal["open", "merged", "declined"] = Field(..., description="The state of the pull requests to list.")
+
+
+class GetPullRequestParams(BaseModel):
+    """Parameters for retrieving a single pull request."""
+
+    pull_request_id: int = Field(..., description="The unique identifier of the pull request.")
+
+
+class CreatePullRequestParams(BaseModel):
+    """Parameters for creating a new pull request."""
+
+    title: str = Field(..., description="The title of the new pull request.")
+    description: Optional[str] = Field(default="", description="A detailed description of the pull request's changes.")
+    source_branch: str = Field(..., description="The name of the branch where the changes are implemented.")
+    destination_branch: str = Field(..., description="The name of the branch the changes will be merged into.")
+    close_source_branch: Optional[bool] = Field(default=False, description="If true, the source branch will be deleted after the pull request is merged.")
+
+
+class MergePullRequestSimpleParams(BaseModel):
+    """Parameters for a simple pull request merge."""
+
+    pull_request_id: int = Field(..., description="The unique identifier of the pull request to merge.")
+    close_source_branch: Optional[bool] = Field(default=False, description="If true, the source branch will be deleted after the pull request is merged.")
+
+
+class MergePullRequestParams(BaseModel):
+    """Parameters for merging a pull request with advanced options."""
+
+    pull_request_id: int = Field(..., description="The unique identifier of the pull request to merge.")
+    merge_strategy: Literal["merge_commit", "squash", "fast_forward"] = Field(default="merge_commit", description="The merge strategy to use.")
+    message: Optional[str] = Field(default="", description="An optional custom message for the merge commit.")
+    close_source_branch: Optional[bool] = Field(default=False, description="If true, the source branch will be deleted after the pull request is merged.")
+
+
+class DeclinePullRequestParams(BaseModel):
+    """Parameters for declining a pull request."""
+
+    pull_request_id: int = Field(..., description="The unique identifier of the pull request to decline.")

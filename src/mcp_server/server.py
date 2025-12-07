@@ -1,16 +1,22 @@
 import os
-from typing import Optional
+import asyncio
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import Tool, TextContent
 
-from bitbucket_client import (
-    BitbucketClient,
-    CreatePullRequest,
-    PullRequestSource,
-    PullRequestBranch,
-    PullRequestDestination,
-    MergePullRequest,
+from bitbucket_client import BitbucketClient
+from bitbucket_client.models import (
+    CreatePullRequestParams,
+    DeclinePullRequestParams,
+    GetPullRequestParams,
+    GetPullRequestsParams,
+    MergePullRequestParams,
+    MergePullRequestSimpleParams,
 )
+
+
+server = Server("bitbucket-mcp")
 
 
 def init_client():
@@ -37,109 +43,79 @@ def init_client():
     return BitbucketClient(workspace, repo_slug, api_token)
 
 
-mcp = FastMCP("bitbucket-mcp", json_response=True)
-
-
-@mcp.tool()
-def get_pull_requests(state: str = "open"):
-    """List pull requests in the repository.
-
-    Args:
-        state: The state of the pull requests to list. Can be 'open', 'merged', or 'declined'.
-
-    Returns:
-        A list of pull request objects matching the specified state.
-    """
-    return init_client().pull_requests.list(state=state)
-
-
-@mcp.tool()
-def get_pull_request(pull_request_id: int):
-    """Retrieve a single pull request by its ID.
-
-    Args:
-        pull_request_id: The ID of the pull request to retrieve.
-
-    Returns:
-        A pull request object with all details for the specified ID.
-    """
-    return init_client().pull_requests.get(pull_request_id)
-
-
-@mcp.tool()
-def create_pull_request(
-    title: str, source_branch: str, destination_branch: str, description: Optional[str] = None, close_source_branch: Optional[bool] = False
-):
-    """Create a new pull request.
-
-    Args:
-        title: The title of the pull request.
-        source_branch: The name of the source branch.
-        destination_branch: The name of the destination branch.
-        description: An optional description for the pull request.
-        close_source_branch: Whether to close the source branch after merging.
-
-    Returns:
-        A newly created pull request object with the specified parameters.
-    """
-    return init_client().pull_requests.create(
-        CreatePullRequest(
-            title=title,
-            description=description,
-            source=PullRequestSource(branch=PullRequestBranch(name=source_branch)),
-            destination=PullRequestDestination(branch=PullRequestBranch(name=destination_branch)),
-            close_source_branch=close_source_branch,
-        )
-    )
-
-
-@mcp.tool()
-def merge_pull_request_simple(pull_request_id: int, close_source_branch: Optional[bool] = False):
-    """Merge a pull request using the default merge strategy.
-
-    Args:
-        pull_request_id: The ID of the pull request to merge.
-        close_source_branch: Whether to close the source branch after merging.
-
-    Returns:
-        The merged pull request object.
-    """
-    return init_client().pull_requests.merge_simple(
-        pull_request_id=pull_request_id,
-        close_source_branch=close_source_branch,
-    )
-
-
-@mcp.tool()
-def merge_pull_request(pull_request_id: int, close_source_branch: Optional[bool] = False, message: Optional[str] = None):
-    """Merge a pull request with customizable options.
-
-    Args:
-        pull_request_id: The ID of the pull request to merge.
-        close_source_branch: Whether to close the source branch after merging.
-        message: An optional commit message for the merge.
-
-    Returns:
-        The merged pull request object.
-    """
-    return init_client().pull_requests.merge(
-        pull_request_id=pull_request_id,
-        params=MergePullRequest(
-            close_source_branch=close_source_branch,
-            merge_strategy="merge_commit",
-            message=message,
+@server.list_tools()
+async def list_tools() -> list[Tool]:
+    """Lists all available Bitbucket tools"""
+    return [
+        Tool(
+            name="get_pull_requests",
+            description="List pull requests in the repository.",
+            inputSchema=GetPullRequestsParams.model_json_schema(),
         ),
-    )
+        Tool(
+            name="get_pull_request",
+            description="Retrieve a single pull request by its ID.",
+            inputSchema=GetPullRequestParams.model_json_schema(),
+        ),
+        Tool(
+            name="create_pull_request",
+            description="Create a new pull request",
+            inputSchema=CreatePullRequestParams.model_json_schema(),
+        ),
+        Tool(
+            name="merge_pull_request_simple",
+            description="Merge a pull request using the default merge strategy",
+            inputSchema=MergePullRequestSimpleParams.model_json_schema(),
+        ),
+        Tool(
+            name="merge_pull_request",
+            description="Merge a pull request with customisable options",
+            inputSchema=MergePullRequestParams.model_json_schema(),
+        ),
+        Tool(
+            name="decline_pull_request",
+            description="Decline a pull request",
+            inputSchema=DeclinePullRequestParams.model_json_schema(),
+        ),
+    ]
 
 
-@mcp.tool()
-def decline_pull_request(pull_request_id: int):
-    """Decline a pull request.
+@server.call_tool()
+async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    """Calls the appropriate Bitbucket tools based on the provided name"""
+    client = init_client()
 
-    Args:
-        pull_request_id: The ID of the pull request to decline.
+    match name:
+        case "get_pull_requests":
+            params = GetPullRequestsParams(**arguments)
+            result = client.pull_requests.list(params=params)
+        case "get_pull_request":
+            params = GetPullRequestParams(**arguments)
+            result = client.pull_requests.get(params=params)
+        case "create_pull_request":
+            params = CreatePullRequestParams(**arguments)
+            result = client.pull_requests.create(params=params)
+        case "merge_pull_request_simple":
+            params = MergePullRequestSimpleParams(**arguments)
+            result = client.pull_requests.merge_simple(params=params)
+        case "merge_pull_request":
+            params = MergePullRequestParams(**arguments)
+            result = client.pull_requests.merge(params=params)
+        case "decline_pull_request":
+            params = DeclinePullRequestParams(**arguments)
+            result = client.pull_requests.decline(params=params)
+        case _:
+            raise ValueError(f"Invalid tool name: {name}")
 
-    Returns:
-        The declined pull request object.
-    """
-    return init_client().pull_requests.decline(pull_request_id)
+    return result
+
+
+async def main():
+    """Runs the MCP server using stdio"""
+    options = server.create_initialization_options()
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(read_stream, write_stream, options)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

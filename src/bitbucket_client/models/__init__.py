@@ -6,6 +6,19 @@ used throughout the Bitbucket client. It primarily exposes the top-level
 models for easy importing.
 """
 
-from .pull_requests import PullRequest, CreatePullRequest, MergePullRequest, PullRequestSource, PullRequestDestination, PullRequestBranch
+from .pull_requests import *
 
-__all__ = ["PullRequest", "CreatePullRequest", "MergePullRequest", "PullRequestSource", "PullRequestDestination", "PullRequestBranch"]
+__all__ = [
+    "PullRequest",
+    "CreatePullRequest",
+    "MergePullRequest",
+    "PullRequestSource",
+    "PullRequestDestination",
+    "PullRequestBranch",
+    "GetPullRequestParams",
+    "GetPullRequestsParams",
+    "CreatePullRequestParams",
+    "MergePullRequestSimpleParams",
+    "MergePullRequestParams",
+    "DeclinePullRequestParams",
+]
