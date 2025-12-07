@@ -17,7 +17,7 @@ class TestHttpClientInitialization:
         HttpClient(
             workspace="my-workspace",
             repo_slug="my-repo",
-            auth_password="secret123",
+            auth_token="secret123",
         )
 
         # Verify BaseClient.__init__ was called with correct base_url
@@ -33,7 +33,7 @@ class TestHttpClientInitialization:
         HttpClient(
             workspace="test-ws",
             repo_slug="test-repo",
-            auth_password="my-token",
+            auth_token="my-token",
         )
 
         call_args = mock_base_init.call_args
@@ -48,7 +48,7 @@ class TestHttpClientInitialization:
         HttpClient(
             workspace="test-ws",
             repo_slug="test-repo",
-            auth_password="token",
+            auth_token="token",
         )
 
         call_args = mock_base_init.call_args
@@ -63,7 +63,7 @@ class TestHttpClientInitialization:
         HttpClient(
             workspace="test-ws",
             repo_slug="test-repo",
-            auth_password="token",
+            auth_token="token",
         )
 
         call_args = mock_base_init.call_args
@@ -78,7 +78,7 @@ class TestHttpClientInitialization:
         HttpClient(
             workspace="test-ws",
             repo_slug="test-repo",
-            auth_password="token",
+            auth_token="token",
         )
 
         call_args = mock_base_init.call_args
@@ -93,14 +93,14 @@ class TestHttpClientInitialization:
         HttpClient(
             workspace="workspace1",
             repo_slug="repo1",
-            auth_password="password123",
+            auth_token="token123",
         )
 
         call_args = mock_base_init.call_args
         headers = call_args[1]["headers"]
 
         expected_headers = {
-            "Authorization": "Bearer password123",
+            "Authorization": "Bearer token123",
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": "bitbucket-mcp",
@@ -117,10 +117,10 @@ class TestHttpClientURLConstruction:
         """Base URL correctly uses different workspace names."""
         mock_base_init.return_value = None
 
-        HttpClient(workspace="acme-corp", repo_slug="api", auth_password="token")
+        HttpClient(workspace="acme-corp", repo_slug="api", auth_token="token")
         url1 = mock_base_init.call_args[1]["base_url"]
 
-        HttpClient(workspace="different-workspace", repo_slug="api", auth_password="token")
+        HttpClient(workspace="different-workspace", repo_slug="api", auth_token="token")
         url2 = mock_base_init.call_args[1]["base_url"]
 
         assert "acme-corp" in url1
@@ -132,10 +132,10 @@ class TestHttpClientURLConstruction:
         """Base URL correctly uses different repo slugs."""
         mock_base_init.return_value = None
 
-        HttpClient(workspace="workspace", repo_slug="backend-api", auth_password="token")
+        HttpClient(workspace="workspace", repo_slug="backend-api", auth_token="token")
         url1 = mock_base_init.call_args[1]["base_url"]
 
-        HttpClient(workspace="workspace", repo_slug="frontend", auth_password="token")
+        HttpClient(workspace="workspace", repo_slug="frontend", auth_token="token")
         url2 = mock_base_init.call_args[1]["base_url"]
 
         assert "backend-api" in url1
@@ -147,7 +147,7 @@ class TestHttpClientURLConstruction:
         """Base URL ends with a trailing slash."""
         mock_base_init.return_value = None
 
-        HttpClient(workspace="ws", repo_slug="repo", auth_password="token")
+        HttpClient(workspace="ws", repo_slug="repo", auth_token="token")
 
         call_args = mock_base_init.call_args
         url = call_args[1]["base_url"]

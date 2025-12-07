@@ -10,12 +10,12 @@ pip install bitbucket-mcp
 
 ## Configuration
 
-You need a Bitbucket App Password with the appropriate permissions (Repositories: Read/Write, Pull Requests: Read/Write).
+You need a Bitbucket API Token with the appropriate permissions (Repositories: Read/Write, Pull Requests: Read/Write). You can create one in your Atlassian account settings.
 
 Set it as an environment variable:
 
 ```bash
-export BITBUCKET_APP_PASSWORD="your-app-password"
+export BITBUCKET_API_TOKEN="your-api-token"
 ```
 
 ## Usage
@@ -26,7 +26,7 @@ export BITBUCKET_APP_PASSWORD="your-app-password"
 from bitbucket_client import BitbucketClient
 
 # Initialize with your workspace and repository slug
-# Password is read from BITBUCKET_APP_PASSWORD env var by default
+# Token is read from BITBUCKET_API_TOKEN env var by default
 client = BitbucketClient(
     workspace="your-workspace",
     repo_slug="your-repo-slug"

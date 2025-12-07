@@ -12,19 +12,19 @@ class TestBitbucketClientInitializationSuccess:
 
     @patch("bitbucket_client.client.PullRequestsAPI")
     @patch("bitbucket_client.client.HttpClient")
-    def test_initializes_with_explicit_password(self, mock_http_client_class, mock_pr_api_class):
-        """Client initializes when password is provided explicitly."""
+    def test_initializes_with_explicit_token(self, mock_http_client_class, mock_pr_api_class):
+        """Client initializes when token is provided explicitly."""
         client = BitbucketClient(
             workspace="my-workspace",
             repo_slug="my-repo",
-            password="explicit-password",
+            token="explicit-token",
         )
 
         # Verify HttpClient was created with correct parameters
         mock_http_client_class.assert_called_once_with(
             workspace="my-workspace",
             repo_slug="my-repo",
-            auth_password="explicit-password",
+            auth_token="explicit-token",
         )
 
         # Verify PullRequestsAPI was created
@@ -32,35 +32,35 @@ class TestBitbucketClientInitializationSuccess:
 
     @patch("bitbucket_client.client.PullRequestsAPI")
     @patch("bitbucket_client.client.HttpClient")
-    def test_initializes_with_env_var_password(self, mock_http_client_class, mock_pr_api_class, bitbucket_env_vars):
-        """Client initializes when password is in BITBUCKET_APP_PASSWORD env var."""
+    def test_initializes_with_env_var_token(self, mock_http_client_class, mock_pr_api_class, bitbucket_env_vars):
+        """Client initializes when token is in BITBUCKET_API_TOKEN env var."""
         client = BitbucketClient(
             workspace="my-workspace",
             repo_slug="my-repo",
         )
 
-        # Should use env var password
+        # Should use env var token
         mock_http_client_class.assert_called_once_with(
             workspace="my-workspace",
             repo_slug="my-repo",
-            auth_password="test-password-123",
+            auth_token="test-token-123",
         )
 
     @patch("bitbucket_client.client.PullRequestsAPI")
     @patch("bitbucket_client.client.HttpClient")
-    def test_explicit_password_takes_precedence(self, mock_http_client_class, mock_pr_api_class, bitbucket_env_vars):
-        """Explicit password takes precedence over environment variable."""
+    def test_explicit_token_takes_precedence(self, mock_http_client_class, mock_pr_api_class, bitbucket_env_vars):
+        """Explicit token takes precedence over environment variable."""
         client = BitbucketClient(
             workspace="my-workspace",
             repo_slug="my-repo",
-            password="explicit-wins",
+            token="explicit-wins",
         )
 
-        # Should use explicit password, not env var
+        # Should use explicit token, not env var
         mock_http_client_class.assert_called_once_with(
             workspace="my-workspace",
             repo_slug="my-repo",
-            auth_password="explicit-wins",
+            auth_token="explicit-wins",
         )
 
     @patch("bitbucket_client.client.PullRequestsAPI")
@@ -75,7 +75,7 @@ class TestBitbucketClientInitializationSuccess:
         client = BitbucketClient(
             workspace="my-workspace",
             repo_slug="my-repo",
-            password="password",
+            token="token",
         )
 
         assert client.pull_requests is mock_pr_instance
@@ -86,36 +86,36 @@ class TestBitbucketClientInitializationFailure:
     """Tests for BitbucketClient initialization failure cases."""
 
     @patch("bitbucket_client.client.HttpClient")
-    def test_raises_error_when_no_password_provided(self, mock_http_client_class, clear_bitbucket_env):
-        """Raises ValueError when password is None and env var is not set."""
+    def test_raises_error_when_no_token_provided(self, mock_http_client_class, clear_bitbucket_env):
+        """Raises ValueError when token is None and env var is not set."""
         with pytest.raises(ValueError) as exc_info:
             BitbucketClient(
                 workspace="my-workspace",
                 repo_slug="my-repo",
-                password=None,
+                token=None,
             )
 
-        assert "Bitbucket app password must be provided" in str(exc_info.value)
+        assert "Bitbucket API token must be provided" in str(exc_info.value)
 
     @patch("bitbucket_client.client.HttpClient")
     def test_error_message_mentions_env_var(self, mock_http_client_class, clear_bitbucket_env):
-        """Error message mentions BITBUCKET_APP_PASSWORD environment variable."""
+        """Error message mentions BITBUCKET_API_TOKEN environment variable."""
         with pytest.raises(ValueError) as exc_info:
             BitbucketClient(workspace="ws", repo_slug="repo")
 
-        assert "BITBUCKET_APP_PASSWORD" in str(exc_info.value)
+        assert "BITBUCKET_API_TOKEN" in str(exc_info.value)
 
     @patch("bitbucket_client.client.HttpClient")
     def test_error_message_mentions_explicit_option(self, mock_http_client_class, clear_bitbucket_env):
-        """Error message mentions explicit password option."""
+        """Error message mentions explicit token option."""
         with pytest.raises(ValueError) as exc_info:
             BitbucketClient(workspace="ws", repo_slug="repo")
 
         assert "explicitly" in str(exc_info.value)
 
     @patch("bitbucket_client.client.HttpClient")
-    def test_http_client_not_created_when_password_missing(self, mock_http_client_class, clear_bitbucket_env):
-        """HttpClient is not instantiated when password validation fails."""
+    def test_http_client_not_created_when_token_missing(self, mock_http_client_class, clear_bitbucket_env):
+        """HttpClient is not instantiated when token validation fails."""
         with pytest.raises(ValueError):
             BitbucketClient(workspace="ws", repo_slug="repo")
 

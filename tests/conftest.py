@@ -76,11 +76,11 @@ def mock_create_pr_response():
 @pytest.fixture
 def bitbucket_env_vars(monkeypatch):
     """Set up environment variables for testing."""
-    monkeypatch.setenv("BITBUCKET_APP_PASSWORD", "test-password-123")
-    return "test-password-123"
+    monkeypatch.setenv("BITBUCKET_API_TOKEN", "test-token-123")
+    return "test-token-123"
 
 
 @pytest.fixture
 def clear_bitbucket_env(monkeypatch):
     """Clear Bitbucket environment variables."""
-    monkeypatch.delenv("BITBUCKET_APP_PASSWORD", raising=False)
+    monkeypatch.delenv("BITBUCKET_API_TOKEN", raising=False)

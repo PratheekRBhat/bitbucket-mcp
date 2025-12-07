@@ -9,14 +9,14 @@ class HttpClient(BaseClient):
     with Bitbucket's specific URL and authentication headers.
     """
 
-    def __init__(self, workspace: str, repo_slug: str, auth_password: str):
+    def __init__(self, workspace: str, repo_slug: str, auth_token: str):
         """
         Initializes the Bitbucket-specific HTTP client.
 
         Args:
             workspace: The Bitbucket workspace ID.
             repo_slug: The repository slug.
-            auth_password: The App Password or Bearer Token for authentication.
+            auth_token: The App Password or Bearer Token for authentication.
         """
         base_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo_slug}/"
 
@@ -25,7 +25,7 @@ class HttpClient(BaseClient):
             # Note: If you are using an OAuth token, 'Bearer' is correct.
             # If you are using an App Password with your username,
             # you should use Basic Auth instead.
-            "Authorization": f"Bearer {auth_password}",
+            "Authorization": f"Bearer {auth_token}",
             "Content-Type": "application/json",
             "Accept": "application/json",
             "User-Agent": "bitbucket-mcp",

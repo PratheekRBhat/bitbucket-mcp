@@ -16,23 +16,23 @@ class BitbucketClient:
     :class:`PullRequestsAPI` via the ``pull_requests`` attribute.
     """
 
-    def __init__(self, workspace: str, repo_slug: str, password: Optional[str] = None):
+    def __init__(self, workspace: str, repo_slug: str, token: Optional[str] = None):
         """Create a new Bitbucket client.
 
         Args:
             workspace: The Bitbucket workspace identifier.
             repo_slug: The repository slug within the workspace.
-            password: Optional app password. If omitted, the
-                ``BITBUCKET_APP_PASSWORD`` environment variable is used.
+            token: Optional API token. If omitted, the
+                ``BITBUCKET_API_TOKEN`` environment variable is used.
 
         Raises:
-            ValueError: If no password is supplied or found in the environment.
+            ValueError: If no token is supplied or found in the environment.
         """
-        password = os.getenv("BITBUCKET_APP_PASSWORD") if not password else password
-        if not password:
+        token = os.getenv("BITBUCKET_API_TOKEN") if not token else token
+        if not token:
             raise ValueError(
-                "Bitbucket app password must be provided explicitly or via the BITBUCKET_APP_PASSWORD environment variable"
+                "Bitbucket API token must be provided explicitly or via the BITBUCKET_API_TOKEN environment variable"
             )
 
-        self._http_client = HttpClient(workspace=workspace, repo_slug=repo_slug, auth_password=password)
+        self._http_client = HttpClient(workspace=workspace, repo_slug=repo_slug, auth_token=token)
         self.pull_requests = PullRequestsAPI(http_client=self._http_client)
