@@ -1,24 +1,25 @@
 """Integration tests for end-to-end API workflows."""
 
+from unittest.mock import patch
+
+import httpx
 import pytest
 import respx
-import httpx
-from unittest.mock import patch
 
 from bitbucket_client import BitbucketClient
 from bitbucket_client.core import BaseClientError
 from bitbucket_client.models import (
-    PullRequest,
-    GetPullRequestsParams,
-    GetPullRequestParams,
     CreatePullRequestParams,
-    MergePullRequestSimpleParams,
     DeclinePullRequestParams,
+    GetPullRequestParams,
+    GetPullRequestsParams,
+    MergePullRequestSimpleParams,
+    PullRequest,
 )
 from tests.fixtures.api_responses import (
-    PULL_REQUEST_OPEN,
-    PULL_REQUEST_MERGED,
     PULL_REQUEST_LIST_RESPONSE,
+    PULL_REQUEST_MERGED,
+    PULL_REQUEST_OPEN,
 )
 
 
@@ -34,7 +35,9 @@ class TestEndToEndPRWorkflow:
         base_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo}/"
 
         # Mock list PRs
-        respx.get(f"{base_url}pullrequests", params={"state": "OPEN"}).mock(return_value=httpx.Response(200, json=PULL_REQUEST_LIST_RESPONSE))
+        respx.get(f"{base_url}pullrequests", params={"state": "OPEN"}).mock(
+            return_value=httpx.Response(200, json=PULL_REQUEST_LIST_RESPONSE)
+        )
 
         # Mock get specific PR
         respx.get(f"{base_url}pullrequests/1").mock(return_value=httpx.Response(200, json=PULL_REQUEST_OPEN))
@@ -69,7 +72,9 @@ class TestEndToEndPRWorkflow:
         assert isinstance(new_pr, PullRequest)
 
         # Merge PR
-        merged_pr = client.pull_requests.merge_simple(params=MergePullRequestSimpleParams(pull_request_id=1, close_source_branch=False))
+        merged_pr = client.pull_requests.merge_simple(
+            params=MergePullRequestSimpleParams(pull_request_id=1, close_source_branch=False)
+        )
         assert merged_pr.state == "MERGED"
 
     @respx.mock
@@ -81,7 +86,9 @@ class TestEndToEndPRWorkflow:
         base_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo}/"
 
         # Mock decline PR
-        respx.post(f"{base_url}pullrequests/3/decline").mock(return_value=httpx.Response(200, json={**PULL_REQUEST_OPEN, "state": "DECLINED"}))
+        respx.post(f"{base_url}pullrequests/3/decline").mock(
+            return_value=httpx.Response(200, json={**PULL_REQUEST_OPEN, "state": "DECLINED"})
+        )
 
         client = BitbucketClient(workspace=workspace, repo_slug=repo)
 
@@ -158,7 +165,9 @@ class TestErrorHandlingWorkflow:
         base_url = f"https://api.bitbucket.org/2.0/repositories/{workspace}/{repo}/"
 
         # Mock 500 response
-        respx.post(f"{base_url}pullrequests").mock(return_value=httpx.Response(500, json={"error": "Internal server error"}))
+        respx.post(f"{base_url}pullrequests").mock(
+            return_value=httpx.Response(500, json={"error": "Internal server error"})
+        )
 
         client = BitbucketClient(workspace=workspace, repo_slug=repo)
 

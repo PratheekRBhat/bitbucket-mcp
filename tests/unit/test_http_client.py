@@ -1,7 +1,8 @@
 """Unit tests for HttpClient Bitbucket-specific configuration."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
 
 from bitbucket_client.core.http_client import HttpClient
 

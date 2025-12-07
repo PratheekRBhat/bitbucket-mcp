@@ -11,18 +11,18 @@ from typing import List
 from bitbucket_client.config import logger
 from bitbucket_client.core import BaseClientError, HttpClient
 from bitbucket_client.models import (
-    PullRequest,
     CreatePullRequest,
-    MergePullRequest,
+    CreatePullRequestParams,
+    DeclinePullRequestParams,
     GetPullRequestParams,
     GetPullRequestsParams,
-    CreatePullRequestParams,
-    PullRequestSource,
-    PullRequestDestination,
-    PullRequestBranch,
-    MergePullRequestSimpleParams,
+    MergePullRequest,
     MergePullRequestParams,
-    DeclinePullRequestParams,
+    MergePullRequestSimpleParams,
+    PullRequest,
+    PullRequestBranch,
+    PullRequestDestination,
+    PullRequestSource,
 )
 
 
@@ -194,4 +194,5 @@ class PullRequestsAPI:
             logger.error("Error declining pull request %d: %s", params.pull_request_id, e)
             raise
 
-#TODO: diff of PR, approve, comment crud, update, unapprove, request changes
+
+# TODO: diff of PR, approve, comment crud, update, unapprove, request changes

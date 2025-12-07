@@ -1,25 +1,26 @@
 """Unit tests for PullRequestsAPI methods."""
 
-import pytest
 from unittest.mock import Mock, patch
+
 import httpx
+import pytest
 
 from bitbucket_client.api.pull_requests import PullRequestsAPI
 from bitbucket_client.core import BaseClientError
 from bitbucket_client.models import (
-    PullRequest,
+    CreatePullRequestParams,
+    DeclinePullRequestParams,
     GetPullRequestParams,
     GetPullRequestsParams,
-    CreatePullRequestParams,
     MergePullRequestParams,
     MergePullRequestSimpleParams,
-    DeclinePullRequestParams,
+    PullRequest,
 )
 from tests.fixtures.api_responses import (
-    PULL_REQUEST_OPEN,
-    PULL_REQUEST_MERGED,
-    PULL_REQUEST_LIST_RESPONSE,
     EMPTY_PULL_REQUEST_LIST,
+    PULL_REQUEST_LIST_RESPONSE,
+    PULL_REQUEST_MERGED,
+    PULL_REQUEST_OPEN,
 )
 
 

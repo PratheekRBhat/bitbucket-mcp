@@ -1,8 +1,9 @@
 """Unit tests for BaseClient HTTP operations."""
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock
+from unittest.mock import AsyncMock, Mock, patch
+
 import httpx
+import pytest
 
 from bitbucket_client.core.base_client import BaseClient, BaseClientError
 

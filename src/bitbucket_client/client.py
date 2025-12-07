@@ -2,11 +2,12 @@
 
 Provides a high-level wrapper around Bitbucket API for pull request operations.
 """
+
 import os
 from typing import Optional
 
-from bitbucket_client.core.http_client import HttpClient
 from bitbucket_client.api.pull_requests import PullRequestsAPI
+from bitbucket_client.core.http_client import HttpClient
 
 
 class BitbucketClient:

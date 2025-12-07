@@ -1,8 +1,9 @@
 """Unit tests for BitbucketClient top-level initialization."""
 
-import pytest
 import os
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+import pytest
 
 from bitbucket_client.client import BitbucketClient
 

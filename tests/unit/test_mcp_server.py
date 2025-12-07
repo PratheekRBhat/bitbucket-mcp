@@ -1,8 +1,8 @@
 """Tests for the MCP server layer."""
 
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
-import sys
 
 import pytest
 
@@ -78,7 +78,9 @@ def test_init_client_uses_git_https(monkeypatch, patched_token):
             captured["token"] = token
 
     monkeypatch.setattr(server, "BitbucketClient", StubClient)
-    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: FakeRepo("https://bitbucket.org/ws/repo.git"))
+    monkeypatch.setattr(
+        server.git, "Repo", lambda path, search_parent_directories: FakeRepo("https://bitbucket.org/ws/repo.git")
+    )
 
     result = server.init_client()
 
@@ -96,7 +98,9 @@ def test_init_client_uses_git_ssh(monkeypatch, patched_token):
             captured["token"] = token
 
     monkeypatch.setattr(server, "BitbucketClient", StubClient)
-    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: FakeRepo("git@bitbucket.org:ws/repo.git"))
+    monkeypatch.setattr(
+        server.git, "Repo", lambda path, search_parent_directories: FakeRepo("git@bitbucket.org:ws/repo.git")
+    )
 
     result = server.init_client()
 
@@ -133,7 +137,9 @@ def test_init_client_invalid_repo(monkeypatch, patched_token):
 
 def test_init_client_invalid_remote(monkeypatch, patched_token):
     monkeypatch.setattr(server, "BitbucketClient", lambda w, r, t: None)
-    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: FakeRepo("https://example.com/foo/bar.git"))
+    monkeypatch.setattr(
+        server.git, "Repo", lambda path, search_parent_directories: FakeRepo("https://example.com/foo/bar.git")
+    )
 
     with pytest.raises(ValueError):
         server.init_client()
@@ -151,7 +157,11 @@ def test_init_client_invalid_remote(monkeypatch, patched_token):
             (
                 "create",
                 server.CreatePullRequestParams(
-                    title="t", source_branch="src", destination_branch="dest", description="d", close_source_branch=False
+                    title="t",
+                    source_branch="src",
+                    destination_branch="dest",
+                    description="d",
+                    close_source_branch=False,
                 ),
             ),
         ),

@@ -1,12 +1,12 @@
+import asyncio
 import os
 import re
-import asyncio
 from pathlib import Path
 
 import git  # type: ignore[import-untyped]
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
 from bitbucket_client import BitbucketClient
 from bitbucket_client.models import (
@@ -17,7 +17,6 @@ from bitbucket_client.models import (
     MergePullRequestParams,
     MergePullRequestSimpleParams,
 )
-
 
 server = Server("bitbucket-mcp")
 

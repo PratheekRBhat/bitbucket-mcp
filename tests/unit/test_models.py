@@ -4,20 +4,20 @@ import pytest
 from pydantic import ValidationError
 
 from bitbucket_client.models.pull_requests import (
-    PullRequest,
-    PullRequestAuthor,
     BranchInfo,
     CommitInfo,
-    RepositoryInfo,
-    PullRequestEndpoint,
-    Summary,
-    MergeCommit,
-    PullRequestBranch,
-    PullRequestSource,
-    PullRequestDestination,
     CreatePullRequest,
     CreatePullRequestReviewer,
+    MergeCommit,
     MergePullRequest,
+    PullRequest,
+    PullRequestAuthor,
+    PullRequestBranch,
+    PullRequestDestination,
+    PullRequestEndpoint,
+    PullRequestSource,
+    RepositoryInfo,
+    Summary,
 )
 
 

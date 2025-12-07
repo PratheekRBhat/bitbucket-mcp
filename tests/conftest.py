@@ -1,11 +1,11 @@
 """Shared pytest fixtures and configuration for bitbucket_client tests."""
 
-from pathlib import Path
 import sys
+from pathlib import Path
 from unittest.mock import Mock
 
-import pytest
 import httpx
+import pytest
 from httpx import Response
 
 ROOT = Path(__file__).resolve().parent.parent
