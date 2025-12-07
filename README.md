@@ -18,6 +18,8 @@ Set it as an environment variable:
 export BITBUCKET_API_TOKEN="your-api-token"
 ```
 
+The workspace and repository slug are now discovered automatically from the local Git repository’s `origin` remote. No additional configuration is required.
+
 ## Usage
 
 ### Initialization

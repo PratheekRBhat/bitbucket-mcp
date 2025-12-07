@@ -13,9 +13,22 @@ if str(SRC_PATH) not in sys.path:
 
 from mcp_server import server
 
-WORKSPACE = "test-workspace"
-REPO_SLUG = "test-repo"
 API_TOKEN = "test-token"
+
+
+class FakeRemote:
+    def __init__(self, url: str):
+        self.url = url
+
+
+class FakeRepo:
+    def __init__(self, url: str):
+        self._remote = FakeRemote(url)
+
+    def remote(self, name: str):
+        if name != "origin":
+            raise ValueError("remote not found")
+        return self._remote
 
 
 class FakePullRequests:
@@ -51,13 +64,11 @@ class FakeClient:
 
 
 @pytest.fixture
-def patched_env(monkeypatch):
-    monkeypatch.setenv("BITBUCKET_WORKSPACE", WORKSPACE)
-    monkeypatch.setenv("BITBUCKET_REPO_SLUG", REPO_SLUG)
+def patched_token(monkeypatch):
     monkeypatch.setenv("BITBUCKET_API_TOKEN", API_TOKEN)
 
 
-def test_init_client_uses_env(monkeypatch, patched_env):
+def test_init_client_uses_git_https(monkeypatch, patched_token):
     captured = {}
 
     class StubClient:
@@ -67,17 +78,62 @@ def test_init_client_uses_env(monkeypatch, patched_env):
             captured["token"] = token
 
     monkeypatch.setattr(server, "BitbucketClient", StubClient)
+    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: FakeRepo("https://bitbucket.org/ws/repo.git"))
 
     result = server.init_client()
 
     assert isinstance(result, StubClient)
-    assert captured == {"workspace": WORKSPACE, "repo_slug": REPO_SLUG, "token": API_TOKEN}
+    assert captured == {"workspace": "ws", "repo_slug": "repo", "token": API_TOKEN}
 
 
-def test_init_client_missing_env(monkeypatch):
-    monkeypatch.delenv("BITBUCKET_WORKSPACE", raising=False)
-    monkeypatch.delenv("BITBUCKET_REPO_SLUG", raising=False)
-    monkeypatch.delenv("BITBUCKET_API_TOKEN", raising=False)
+def test_init_client_uses_git_ssh(monkeypatch, patched_token):
+    captured = {}
+
+    class StubClient:
+        def __init__(self, workspace, repo_slug, token):
+            captured["workspace"] = workspace
+            captured["repo_slug"] = repo_slug
+            captured["token"] = token
+
+    monkeypatch.setattr(server, "BitbucketClient", StubClient)
+    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: FakeRepo("git@bitbucket.org:ws/repo.git"))
+
+    result = server.init_client()
+
+    assert isinstance(result, StubClient)
+    assert captured == {"workspace": "ws", "repo_slug": "repo", "token": API_TOKEN}
+
+
+def test_init_client_missing_origin(monkeypatch, patched_token):
+    class NoOriginRepo:
+        def remote(self, name: str):
+            raise ValueError("not found")
+
+    monkeypatch.setattr(server, "BitbucketClient", lambda w, r, t: None)
+    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: NoOriginRepo())
+
+    with pytest.raises(ValueError):
+        server.init_client()
+
+
+def test_init_client_invalid_repo(monkeypatch, patched_token):
+    monkeypatch.setattr(server, "BitbucketClient", lambda w, r, t: None)
+
+    class DummyError(server.git.InvalidGitRepositoryError):
+        pass
+
+    def raise_invalid(*args, **kwargs):
+        raise DummyError()
+
+    monkeypatch.setattr(server.git, "Repo", raise_invalid)
+
+    with pytest.raises(ValueError):
+        server.init_client()
+
+
+def test_init_client_invalid_remote(monkeypatch, patched_token):
+    monkeypatch.setattr(server, "BitbucketClient", lambda w, r, t: None)
+    monkeypatch.setattr(server.git, "Repo", lambda path, search_parent_directories: FakeRepo("https://example.com/foo/bar.git"))
 
     with pytest.raises(ValueError):
         server.init_client()

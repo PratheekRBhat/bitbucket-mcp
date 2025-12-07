@@ -56,9 +56,7 @@ class BaseClient:
             timeout=self._default_timeout,
         )
 
-    def _prepare_request_args(
-        self, headers: Optional[Dict[str, str]] = None, timeout: Optional[float] = None
-    ) -> Dict[str, Any]:
+    def _prepare_request_args(self, headers: Optional[Dict[str, str]] = None, timeout: Optional[float] = None) -> Dict[str, Any]:
         """
         Prepares request arguments by combining default and custom headers/timeout.
         """

@@ -1,6 +1,9 @@
 import os
+import re
 import asyncio
+from pathlib import Path
 
+import git  # type: ignore[import-untyped]
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
@@ -19,26 +22,54 @@ from bitbucket_client.models import (
 server = Server("bitbucket-mcp")
 
 
+BITBUCKET_REMOTE_PATTERNS = (
+    re.compile(r"git@bitbucket\.org:(?P<workspace>[^/]+)/(?P<repo>[^/]+)(?:\.git)?$"),
+    re.compile(r"https?://(?:[^@/]+@)?bitbucket\.org/(?P<workspace>[^/]+)/(?P<repo>[^/]+)(?:\.git)?$"),
+)
+
+
+def _parse_bitbucket_remote(url: str) -> tuple[str, str]:
+    """Extract workspace and repo slug from a Bitbucket remote URL."""
+    for pattern in BITBUCKET_REMOTE_PATTERNS:
+        match = pattern.match(url)
+        if match:
+            workspace = match.group("workspace")
+            repo = match.group("repo")
+            if repo.endswith(".git"):
+                repo = repo[:-4]
+            return workspace, repo
+    raise ValueError(f"Unsupported Bitbucket remote URL: {url}")
+
+
 def init_client():
     """Initialize and return a BitbucketClient instance.
 
-    Reads required configuration from environment variables:
-    - BITBUCKET_WORKSPACE: The Bitbucket workspace identifier
-    - BITBUCKET_REPO_SLUG: The repository slug within the workspace
-    - BITBUCKET_API_TOKEN: The API token for authentication
+    Discovers the repository context from the local Git configuration and uses
+    the BITBUCKET_API_TOKEN environment variable for authentication.
 
     Returns:
         BitbucketClient: A configured client instance ready for API operations.
 
     Raises:
-        ValueError: If any required environment variables are not set.
+        ValueError: If the current directory is not a Git repository, if the
+            origin remote is missing, if the remote URL is not a Bitbucket URL,
+            or if BITBUCKET_API_TOKEN is not set.
     """
-    workspace = os.getenv("BITBUCKET_WORKSPACE")
-    repo_slug = os.getenv("BITBUCKET_REPO_SLUG")
     api_token = os.getenv("BITBUCKET_API_TOKEN")
+    if not api_token:
+        raise ValueError("Missing BITBUCKET_API_TOKEN environment variable")
 
-    if not workspace or not repo_slug or not api_token:
-        raise ValueError("Missing required environment variables")
+    try:
+        repo = git.Repo(Path.cwd(), search_parent_directories=True)
+    except git.InvalidGitRepositoryError as err:
+        raise ValueError("Current directory is not inside a Git repository") from err
+
+    try:
+        origin = repo.remote(name="origin")
+    except ValueError as err:
+        raise ValueError("Git remote 'origin' not found") from err
+
+    workspace, repo_slug = _parse_bitbucket_remote(origin.url)
 
     return BitbucketClient(workspace, repo_slug, api_token)
 
