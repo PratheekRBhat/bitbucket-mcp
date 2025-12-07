@@ -89,6 +89,7 @@ class BaseClient:
         """
         relative_path = path.lstrip("/")
         request_args = self._prepare_request_args(headers, timeout)
+        json_data = kwargs.pop("json", json_body)
 
         logger.info("Forwarding %s request to path: %s", method, relative_path)
         try:
@@ -96,7 +97,7 @@ class BaseClient:
                 method=method,
                 url=relative_path,
                 params=params,
-                json=json_body,
+                json=json_data,
                 data=data,
                 headers=request_args["headers"],
                 timeout=request_args["timeout"],
@@ -134,6 +135,7 @@ class BaseClient:
         """
         relative_path = path.lstrip("/")
         request_args = self._prepare_request_args(headers, timeout)
+        json_data = kwargs.pop("json", json_body)
 
         logger.info(
             "Forwarding async %s request to path: %s with params: %s, body: %s, data: %s",
@@ -148,7 +150,7 @@ class BaseClient:
                 method=method,
                 url=relative_path,
                 params=params,
-                json=json_body,
+                json=json_data,
                 data=data,
                 headers=request_args["headers"],
                 timeout=request_args["timeout"],

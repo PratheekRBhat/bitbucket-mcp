@@ -8,11 +8,12 @@ from bitbucket_client.api.pull_requests import PullRequestsAPI
 from bitbucket_client.core import BaseClientError
 from bitbucket_client.models import (
     PullRequest,
-    CreatePullRequest,
-    MergePullRequest,
-    PullRequestSource,
-    PullRequestDestination,
-    PullRequestBranch,
+    GetPullRequestParams,
+    GetPullRequestsParams,
+    CreatePullRequestParams,
+    MergePullRequestParams,
+    MergePullRequestSimpleParams,
+    DeclinePullRequestParams,
 )
 from tests.fixtures.api_responses import (
     PULL_REQUEST_OPEN,
@@ -41,7 +42,7 @@ class TestPullRequestsAPIGet:
         mock_http_client.get = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.get(pull_request_id=42)
+        api.get(params=GetPullRequestParams(pull_request_id=42))
 
         mock_http_client.get.assert_called_once_with(path="pullrequests/42")
 
@@ -52,7 +53,7 @@ class TestPullRequestsAPIGet:
         mock_http_client.get = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        result = api.get(pull_request_id=1)
+        result = api.get(params=GetPullRequestParams(pull_request_id=1))
 
         assert isinstance(result, PullRequest)
         assert result.id == 1
@@ -66,7 +67,7 @@ class TestPullRequestsAPIGet:
         api = PullRequestsAPI(http_client=mock_http_client)
 
         with pytest.raises(BaseClientError):
-            api.get(pull_request_id=999)
+            api.get(params=GetPullRequestParams(pull_request_id=999))
 
 
 class TestPullRequestsAPIList:
@@ -79,7 +80,7 @@ class TestPullRequestsAPIList:
         mock_http_client.get = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.list(state="open")
+        api.list(params=GetPullRequestsParams(state="open"))
 
         mock_http_client.get.assert_called_once_with(path="pullrequests", params={"state": "OPEN"})
 
@@ -90,7 +91,7 @@ class TestPullRequestsAPIList:
         mock_http_client.get = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.list(state="merged")
+        api.list(params=GetPullRequestsParams(state="merged"))
 
         call_args = mock_http_client.get.call_args
         assert call_args[1]["params"]["state"] == "MERGED"
@@ -102,7 +103,7 @@ class TestPullRequestsAPIList:
         mock_http_client.get = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        result = api.list(state="open")
+        result = api.list(params=GetPullRequestsParams(state="open"))
 
         assert isinstance(result, list)
         assert len(result) == 2
@@ -117,7 +118,7 @@ class TestPullRequestsAPIList:
         mock_http_client.get = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        result = api.list(state="open")
+        result = api.list(params=GetPullRequestsParams(state="open"))
 
         assert result == []
 
@@ -128,7 +129,7 @@ class TestPullRequestsAPIList:
         api = PullRequestsAPI(http_client=mock_http_client)
 
         with pytest.raises(BaseClientError):
-            api.list()
+            api.list(params=GetPullRequestsParams(state="open"))
 
 
 class TestPullRequestsAPICreate:
@@ -142,10 +143,10 @@ class TestPullRequestsAPICreate:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = CreatePullRequest(
+        params = CreatePullRequestParams(
             title="New PR",
-            source=PullRequestSource(branch=PullRequestBranch(name="feature")),
-            destination=PullRequestDestination(branch=PullRequestBranch(name="main")),
+            source_branch="feature",
+            destination_branch="main",
         )
         api.create(params=params)
 
@@ -161,10 +162,10 @@ class TestPullRequestsAPICreate:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = CreatePullRequest(
+        params = CreatePullRequestParams(
             title="New PR",
-            source=PullRequestSource(branch=PullRequestBranch(name="feature")),
-            destination=PullRequestDestination(branch=PullRequestBranch(name="main")),
+            source_branch="feature",
+            destination_branch="main",
             description=None,  # Should be excluded
         )
         api.create(params=params)
@@ -186,10 +187,10 @@ class TestPullRequestsAPICreate:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = CreatePullRequest(
+        params = CreatePullRequestParams(
             title="New PR",
-            source=PullRequestSource(branch=PullRequestBranch(name="feature")),
-            destination=PullRequestDestination(branch=PullRequestBranch(name="main")),
+            source_branch="feature",
+            destination_branch="main",
         )
         result = api.create(params=params)
 
@@ -202,10 +203,10 @@ class TestPullRequestsAPICreate:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = CreatePullRequest(
+        params = CreatePullRequestParams(
             title="New PR",
-            source=PullRequestSource(branch=PullRequestBranch(name="feature")),
-            destination=PullRequestDestination(branch=PullRequestBranch(name="main")),
+            source_branch="feature",
+            destination_branch="main",
         )
 
         with pytest.raises(BaseClientError):
@@ -223,8 +224,8 @@ class TestPullRequestsAPIMerge:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = MergePullRequest()
-        api.merge(pull_request_id=42, params=params)
+        params = MergePullRequestParams(pull_request_id=42)
+        api.merge(params=params)
 
         call_args = mock_http_client.post.call_args
         assert call_args[1]["path"] == "pullrequests/42/merge"
@@ -237,11 +238,13 @@ class TestPullRequestsAPIMerge:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = MergePullRequest(
+        params = MergePullRequestParams(
+            pull_request_id=42,
             message="Custom merge message",
             close_source_branch=True,
+            merge_strategy="merge_commit",
         )
-        api.merge(pull_request_id=42, params=params)
+        api.merge(params=params)
 
         call_args = mock_http_client.post.call_args
         json_data = call_args[1]["json"]
@@ -250,18 +253,25 @@ class TestPullRequestsAPIMerge:
         assert json_data["close_source_branch"] is True
 
     def test_merge_handles_none_params(self, mock_http_client):
-        """Handles params=None case (empty JSON body)."""
+        """Handles params with optional fields omitted."""
         mock_response = Mock(spec=httpx.Response)
         mock_response.json.return_value = PULL_REQUEST_MERGED
         mock_http_client.post = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.merge(pull_request_id=42, params=None)
+        api.merge(
+            params=MergePullRequestParams(
+                pull_request_id=42,
+                message=None,
+                close_source_branch=None,
+                merge_strategy="merge_commit",
+            )
+        )
 
         call_args = mock_http_client.post.call_args
         json_data = call_args[1]["json"]
 
-        assert json_data == {}
+        assert json_data.get("merge_strategy") == "merge_commit"
 
     def test_merge_returns_pull_request_model(self, mock_http_client):
         """Returns merged PullRequest object."""
@@ -271,8 +281,8 @@ class TestPullRequestsAPIMerge:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = MergePullRequest()
-        result = api.merge(pull_request_id=2, params=params)
+        params = MergePullRequestParams(pull_request_id=2)
+        result = api.merge(params=params)
 
         assert isinstance(result, PullRequest)
         assert result.id == 2
@@ -284,10 +294,10 @@ class TestPullRequestsAPIMerge:
 
         api = PullRequestsAPI(http_client=mock_http_client)
 
-        params = MergePullRequest()
+        params = MergePullRequestParams(pull_request_id=42)
 
         with pytest.raises(BaseClientError):
-            api.merge(pull_request_id=42, params=params)
+            api.merge(params=params)
 
 
 class TestPullRequestsAPIMergeSimple:
@@ -299,14 +309,13 @@ class TestPullRequestsAPIMergeSimple:
         mock_merge.return_value = Mock(spec=PullRequest)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.merge_simple(pull_request_id=42, close_source_branch=True)
+        api.merge_simple(params=MergePullRequestSimpleParams(pull_request_id=42, close_source_branch=True))
 
         # Verify merge was called with correct parameters
         mock_merge.assert_called_once()
         call_args = mock_merge.call_args
-        assert call_args[0][0] == 42  # pull_request_id
-        params = call_args[0][1]
-        assert isinstance(params, MergePullRequest)
+        params = call_args[0][0]
+        assert isinstance(params, MergePullRequestParams)
         assert params.close_source_branch is True
 
     @patch.object(PullRequestsAPI, "merge")
@@ -315,10 +324,10 @@ class TestPullRequestsAPIMergeSimple:
         mock_merge.return_value = Mock(spec=PullRequest)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.merge_simple(pull_request_id=42)
+        api.merge_simple(params=MergePullRequestSimpleParams(pull_request_id=42))
 
         call_args = mock_merge.call_args
-        params = call_args[0][1]
+        params = call_args[0][0]
         assert params.close_source_branch is False
 
     @patch.object(PullRequestsAPI, "merge")
@@ -328,7 +337,7 @@ class TestPullRequestsAPIMergeSimple:
         mock_merge.return_value = expected_result
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        result = api.merge_simple(pull_request_id=42)
+        result = api.merge_simple(params=MergePullRequestSimpleParams(pull_request_id=42))
 
         assert result is expected_result
 
@@ -343,7 +352,7 @@ class TestPullRequestsAPIDecline:
         mock_http_client.post = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        api.decline(pull_request_id=42)
+        api.decline(params=DeclinePullRequestParams(pull_request_id=42))
 
         call_args = mock_http_client.post.call_args
         assert call_args[0][0] == "pullrequests/42/decline"
@@ -355,7 +364,7 @@ class TestPullRequestsAPIDecline:
         mock_http_client.post = Mock(return_value=mock_response)
 
         api = PullRequestsAPI(http_client=mock_http_client)
-        result = api.decline(pull_request_id=3)
+        result = api.decline(params=DeclinePullRequestParams(pull_request_id=3))
 
         assert isinstance(result, PullRequest)
 
@@ -366,4 +375,4 @@ class TestPullRequestsAPIDecline:
         api = PullRequestsAPI(http_client=mock_http_client)
 
         with pytest.raises(BaseClientError):
-            api.decline(pull_request_id=42)
+            api.decline(params=DeclinePullRequestParams(pull_request_id=42))

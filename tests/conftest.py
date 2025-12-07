@@ -1,8 +1,42 @@
 """Shared pytest fixtures and configuration for bitbucket_client tests."""
 
-import pytest
+from pathlib import Path
+import sys
 from unittest.mock import Mock
+
+import pytest
+import httpx
 from httpx import Response
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC_PATH = ROOT / "src"
+for path in (ROOT, SRC_PATH):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+
+@pytest.fixture(autouse=True)
+def patch_httpx_clients(monkeypatch):
+    original_client = httpx.Client
+    original_async_client = httpx.AsyncClient
+
+    def client_factory(*args, **kwargs):
+        kwargs.setdefault("verify", False)
+        kwargs.setdefault("trust_env", False)
+        return original_client(*args, **kwargs)
+
+    def async_client_factory(*args, **kwargs):
+        kwargs.setdefault("verify", False)
+        kwargs.setdefault("trust_env", False)
+        return original_async_client(*args, **kwargs)
+
+    monkeypatch.setattr("bitbucket_client.core.base_client.httpx.Client", client_factory)
+    monkeypatch.setattr("bitbucket_client.core.base_client.httpx.AsyncClient", async_client_factory)
+
+
+@pytest.fixture(autouse=True)
+def set_fake_token(monkeypatch):
+    monkeypatch.setenv("BITBUCKET_API_TOKEN", "test-token")
 
 
 @pytest.fixture

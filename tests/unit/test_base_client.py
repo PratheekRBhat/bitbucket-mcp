@@ -309,6 +309,8 @@ class TestBaseClientContextManagers:
     def test_sync_context_manager_enter_exit(self, mock_client_class):
         """Sync context manager properly manages client lifecycle."""
         mock_instance = Mock()
+        mock_instance.__enter__ = Mock(return_value=mock_instance)
+        mock_instance.__exit__ = Mock(return_value=None)
         mock_client_class.return_value = mock_instance
 
         client = BaseClient(base_url="https://api.example.com/")
